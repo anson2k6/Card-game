@@ -1,0 +1,97 @@
+import random
+import time
+from ollama import chat
+
+def generate_card():
+    system_prompt = "You are a fantasy card generator. You only reply in the following format:\nName: <name>\nType: <type>\nDescription: <description>"
+    user_prompt = "Generate a new fantasy battle card."
+
+    response = chat(
+        model='gemma3:4b',
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
+        ]
+    )
+
+    content = response['message']['content']
+    name = type_ = description = "Unknown"
+
+    for line in content.splitlines():
+        if line.startswith("Name:"):
+            name = line.split("Name:")[1].strip()
+        elif line.startswith("Type:"):
+            type_ = line.split("Type:")[1].strip()
+        elif line.startswith("Description:"):
+            description = line.split("Description:")[1].strip()
+
+    attack = random.randint(4, 12)
+    return {"name": name, "type": type_, "description": description, "attack": attack}
+
+def show_card(card):
+    print(f"\U0001F539 Name: {card['name']}")
+    print(f"\U0001F538 Type: {card['type']}")
+    print(f"\U0001F4DD Description: {card['description']}")
+    print(f"\u2694\ufe0f  Attack: {card['attack']}")
+
+def main():
+    player_hp = 30
+    enemy_hp = 30
+    round_num = 1
+
+    print("\U0001F3B4 Welcome to Gemma's Duel – Turn-Based Edition!")
+    print("❤️ You and the opponent each start with 30 HP.\n")
+
+    while player_hp > 0 and enemy_hp > 0:
+        print(f"\n===== Round {round_num} =====")
+        player_card = generate_card()
+        enemy_card = generate_card()
+
+        print("\n\U0001F9D9 Your Card:")
+        show_card(player_card)
+
+        print("\n\U0001F916 Opponent draws a card...")
+
+        move = input("\nYour move - (a)ttack or (d)efend? ").lower()
+        while move not in ['a', 'd']:
+            move = input("Please choose (a)ttack or (d)efend: ").lower()
+
+        enemy_move = random.choice(['a', 'd'])
+        print(f"\U0001F916 Opponent chooses to {'attack' if enemy_move == 'a' else 'defend' }.")
+
+        if move == 'a' and enemy_move == 'a':
+            player_hp -= enemy_card['attack']
+            enemy_hp -= player_card['attack']
+            print("\n⚔️ You and your opponent both attack!")
+            print(f"You deal {player_card['attack']} damage.")
+            print(f"You receive {enemy_card['attack']} damage.")
+
+        elif move == 'a' and enemy_move == 'd':
+            dmg = max(1, player_card['attack'] // 2)
+            enemy_hp -= dmg
+            print("\n\U0001F6E1️ Opponent defends! Your attack is halved.")
+            print(f"You deal {dmg} damage.")
+
+        elif move == 'd' and enemy_move == 'a':
+            dmg = max(1, enemy_card['attack'] // 2)
+            player_hp -= dmg
+            print("\n You defend! Incoming attack is halved.")
+            print(f"You receive {dmg} damage.")
+
+        elif move == 'd' and enemy_move == 'd':
+            print("\n Both players defend. Nothing happens this turn.")
+
+        print(f"\n Your HP: {player_hp}")
+        print(f" Opponent HP: {enemy_hp}")
+
+        round_num += 1
+        time.sleep(2)
+
+    print("\n===== GAME OVER =====")
+    if player_hp > 0:
+        print("\U0001F3C6 You win the duel!")
+    else:
+        print("\U0001F635 You were defeated!")
+
+if __name__ == "__main__":
+    main()
